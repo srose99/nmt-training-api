@@ -1,0 +1,56 @@
+Metadata-Version: 2.1
+Name: docker-cli
+Version: 1.0.2
+Summary: A straight forward tool to get information from docker command line and try to parse into json format as far as possible.
+Home-page: https://github.com/manugraj/docker-cli
+License: MIT
+Keywords: docker,docker-compose
+Author: Manu
+Author-email: grajmanu@gmail.com
+Requires-Python: >=3.6,<4.0
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Topic :: Software Development
+Requires-Dist: Unidecode (>=1.2.0,<2.0.0)
+Requires-Dist: clean-text (>=0.4.0,<0.5.0)
+Requires-Dist: delegator.py (>=0.1.1,<0.2.0)
+Requires-Dist: docker-compose (>=1.29.2,<2.0.0)
+Project-URL: Documentation, https://github.com/manugraj/docker-cli
+Project-URL: Repository, https://github.com/manugraj/docker-cli
+Description-Content-Type: text/markdown
+
+# Docker-cli
+ 
+A straight forward tool to get information from docker command line and try to parse into json format as far as possible.
+
+## Why not docker api?
+- The api schema might change and response data might change so often.
+- Docker-cli uses docker cli to get response and try to format them into json format
+
+## Installation
+`pip install docker-cli`
+
+## Main methods
+- `is_docker_set()` to verify docker installation and availability
+```bash
+ docker_cli.is_docker_set() 
+```
+- To run docker commands
+```bash
+ Request: docker_cli.docker("ps") 
+ 
+ Response Structure:
+ DockerResponse(command='docker ps', status='SUCCESS', type='JSON', data=[<JSON Data>])
+
+```
+- To run docker commands
+```bash
+ Request: docker_cli.docker_compose("up -d") 
+ 
+ Response Structure:
+ Similar as that of docker commands
+```
