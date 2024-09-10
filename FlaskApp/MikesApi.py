@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify, abort
 from prometheus_client import Summary, Counter, make_wsgi_app
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from pythonjsonlogger import jsonlogger
@@ -86,12 +86,25 @@ def addPostRequestData():
     requestHistory.append(data)
     return '', 204
 
+@app.route("/flavours/<distro>")
+@REQUEST_TIME.time()
+def getFlavourData(distro):
+    NUMBER_OF_REQUESTS.labels(endpoint='/flavours/' + distro).inc()
+    distro = distro.capitalize()
+
+    for flavour in linuxFlavours:
+        if flavour["name"].lower() == distro.lower():
+            logger.info(f"Successful request for {distro}")
+            return jsonify({
+                "distro": flavour["name"],
+                "supported versions": flavour["supported_versions"]
+            })
+    logger.error(f"Distribution {distro} not found")
+    abort(404, description=f"Linux distribution '{distro}' not found")
+
 app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
     '/metrics': make_wsgi_app()
 })
 
 if __name__ == "__main__":
     app.run(debug=True)
-    
-
-"Need to see how many people have requested an Endpoint, need to add the users IP to a list then count the length of that list with no duplicates, output that as custom prometheus metric"
