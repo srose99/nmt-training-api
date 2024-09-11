@@ -25,3 +25,4 @@ def test_get_ubuntu_flavour(client):
             },
         ]
     }
+    

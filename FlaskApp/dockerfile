@@ -2,5 +2,6 @@ FROM python:3-alpine
 WORKDIR /app 
 COPY . /app
 RUN pip3 --no-cache-dir install -r requirements.txt
+RUN pytest flavour_tests.py
 COPY . .
 CMD ["python", "-m", "flask", "--app", "MikesApi", "run", "--host=0.0.0.0"]

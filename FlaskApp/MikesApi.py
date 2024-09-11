@@ -96,8 +96,8 @@ def getFlavourData(distro):
         if flavour["name"].lower() == distro.lower():
             logger.info(f"Successful request for {distro}")
             return jsonify({
-                "distro": flavour["name"],
-                "supported versions": flavour["supported_versions"]
+                "name": flavour["name"],
+                "supported_versions": flavour["supported_versions"]
             })
     logger.error(f"Distribution {distro} not found")
     abort(404, description=f"Linux distribution '{distro}' not found")
