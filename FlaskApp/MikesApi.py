@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, abort
 from prometheus_client import Summary, Counter, make_wsgi_app
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from pythonjsonlogger import jsonlogger
@@ -95,10 +95,13 @@ def getFlavourData(distro):
     for flavour in linuxFlavours:
         if flavour["name"].lower() == distro.lower():
             logger.info(f"Successful request for {distro}")
-            return jsonify({
-                "name": flavour["name"],
-                "supported_versions": flavour["supported_versions"]
-            })
+            
+            supported_versions = ", ".join([version["version"] for version in flavour["supported_versions"]])
+            end_dates = ", ".join([version["end_date"] for version in flavour["supported_versions"]])
+            transformed_response = f"Distro Name: {flavour['name']}, Supported Versions: {supported_versions}, End Dates: {end_dates}"
+
+            return transformed_response
+        
     logger.error(f"Distribution {distro} not found")
     abort(404, description=f"Linux distribution '{distro}' not found")
 
