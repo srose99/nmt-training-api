@@ -1,4 +1,4 @@
-from flask import Flask, request, abort
+from flask import Flask, request, jsonify, abort
 from prometheus_client import Summary, Counter, make_wsgi_app
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from pythonjsonlogger import jsonlogger
@@ -6,6 +6,7 @@ import time
 import logging
 app = Flask(__name__)
 
+# A history of previous requests made, mainly for testing
 requestHistory = ['Start']
 
 linuxFlavours = [
@@ -56,9 +57,11 @@ linuxFlavours = [
     },
 ]
 
+#Prometheus Metrics
 REQUEST_TIME = Summary('request_latency_seconds', 'Time spent processing request')
 NUMBER_OF_REQUESTS = Counter('number_of_requests', 'Number of times an endpoint has been accessed', ['endpoint'])
 
+#Assigning a logger file location, format, handler, and mode (In this case Debug)
 logger = logging.getLogger(__name__)
 logHandler = logging.FileHandler('MikesApi.log')
 
@@ -70,9 +73,9 @@ logger.addHandler(logHandler)
 logger.setLevel(logging.DEBUG)
 
 @app.route("/")
-@REQUEST_TIME.time()
-def getRequestHistory():
-    NUMBER_OF_REQUESTS.labels(endpoint='/').inc()
+@REQUEST_TIME.time() # Records latency of request
+def getRequestHandler():
+    NUMBER_OF_REQUESTS.labels(endpoint='/').inc() # Increment the prometheus counter metric
     requestHistory.append('GET')
     logger.info('Successful GET')
     return linuxFlavours
@@ -81,10 +84,21 @@ def getRequestHistory():
 @REQUEST_TIME.time()
 def addPostRequestData():
     NUMBER_OF_REQUESTS.labels(endpoint='/').inc()
-    data = request.data.decode('utf-8')
-    logger.info('Successful POST', extra={'request_data': data})
-    requestHistory.append(data)
-    return '', 204
+    # If data of POST request is not in the JSON format throws a 400 error status
+    if not request.is_json:
+        logger.error('POST request data is not in JSON format')
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+
+    # If data of POST doesnt contain correct key names throws the same 400 error status
+    if 'name' not in data or 'supported_versions' not in data:
+        logger.error('POST request data is missing required fields')
+        return jsonify({"error": "Missing required fields: name or supported_versions"}), 400
+    
+    logger.info('Successful POST', extra={'request_data': data}) # Logs to log file on successful request
+    linuxFlavours.append(data)
+    return jsonify({"message": "Linux distribution added successfully"}), 201
 
 @app.route("/flavours/<distro>")
 @REQUEST_TIME.time()
@@ -93,19 +107,19 @@ def getFlavourData(distro):
     distro = distro.capitalize()
 
     for flavour in linuxFlavours:
-        if flavour["name"].lower() == distro.lower():
+        if flavour["name"].lower() == distro.lower(): # Searches linuxFlavours for entries matching the name of the search parameter
             logger.info(f"Successful request for {distro}")
             
             supported_versions = ", ".join([version["version"] for version in flavour["supported_versions"]])
             end_dates = ", ".join([version["end_date"] for version in flavour["supported_versions"]])
-            transformed_response = f"Distro Name: {flavour['name']}, Supported Versions: {supported_versions}, End Dates: {end_dates}"
+            transformed_response = f"Distro Name: {flavour['name']}, Supported Versions: {supported_versions}, End Dates: {end_dates}" # Series of joins to transform the data to the correct format to become consumable for the user
 
             return transformed_response
         
     logger.error(f"Distribution {distro} not found")
-    abort(404, description=f"Linux distribution '{distro}' not found")
+    abort(404, description=f"Linux distribution '{distro}' not found") # If no Distro found matching search param abort with a 404 status code
 
-app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
+app.wsgi_app = DispatcherMiddleware(app.wsgi_app, { # Flask exporter for prometheus, enables the /metrics endpoint and displays metrics through the use of middleware
     '/metrics': make_wsgi_app()
 })
 
